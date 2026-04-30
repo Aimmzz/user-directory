@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Close
@@ -32,7 +33,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,6 +44,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import com.aimcode.userdirectory.core.model.response.CityResponse
 import com.aimcode.userdirectory.core.model.response.UserResponse
 import com.aimcode.userdirectory.core.ui.UiLoadState
@@ -52,8 +57,21 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    navBackStackEntry: NavBackStackEntry,
+    onNavigateToAddUser: () -> Unit,
 ) {
+    val userAdded by navBackStackEntry.savedStateHandle
+        .getStateFlow("user_added", false)
+        .collectAsStateWithLifecycle()
+
+    LaunchedEffect(userAdded) {
+        if (userAdded) {
+            viewModel.refresh()
+            navBackStackEntry.savedStateHandle["user_added"] = false
+        }
+    }
+
     HomeScreenUi(
         userState = viewModel.userState,
         cityState = viewModel.cityState,
@@ -61,11 +79,14 @@ fun HomeScreen(
         selectedCity = viewModel.selectedCity,
         searchQuery = viewModel.searchQuery,
         sortAscending = viewModel.sortAscending,
+        isRefreshing = viewModel.isRefreshing,
+        onRefresh = viewModel::refresh,
         onSearchQueryChange = viewModel::onSearchQueryChange,
         onToggleSort = viewModel::toggleSort,
         onSelectCity = viewModel::selectCity,
         onRetry = { viewModel.getUsers(viewModel.selectedCity?.name) },
-        onRetryCity = { viewModel.getCities() }
+        onRetryCity = { viewModel.getCities() },
+        onNavigateToAddUser = onNavigateToAddUser
     )
 }
 
@@ -79,11 +100,14 @@ private fun HomeScreenUi(
     selectedCity: CityResponse?,
     searchQuery: String,
     sortAscending: Boolean,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
     onSearchQueryChange: (String) -> Unit,
     onToggleSort: () -> Unit,
     onSelectCity: (CityResponse?) -> Unit,
     onRetry: () -> Unit,
-    onRetryCity: () -> Unit
+    onRetryCity: () -> Unit,
+    onNavigateToAddUser: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val scope = rememberCoroutineScope()
@@ -135,6 +159,10 @@ private fun HomeScreenUi(
                                 )
                             }
                         }
+
+                        IconButton(onClick = onNavigateToAddUser) {
+                            Icon(imageVector = Icons.Rounded.Add, contentDescription = "Tambah")
+                        }
                     }
                 )
 
@@ -168,20 +196,23 @@ private fun HomeScreenUi(
             }
         }
     ) { innerPadding ->
-        when (userState) {
-            is UiLoadState.Idle,
-            is UiLoadState.Loading -> SkeletonUi(modifier = Modifier.padding(innerPadding))
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            when (userState) {
+                is UiLoadState.Idle,
+                is UiLoadState.Loading -> SkeletonUi()
 
-            is UiLoadState.Failed -> ErrorUi(
-                modifier = Modifier.padding(innerPadding),
-                onRetry = onRetry
-            )
+                is UiLoadState.Failed -> ErrorUi(onRetry = onRetry)
 
-            is UiLoadState.Success -> SuccessUi(
-                modifier = modifier.padding(innerPadding),
-                users = filteredUsers,
-                sortAscending = sortAscending
-            )
+                is UiLoadState.Success -> SuccessUi(
+                    modifier = modifier,
+                    users = filteredUsers,
+                    sortAscending = sortAscending
+                )
+            }
         }
     }
 }

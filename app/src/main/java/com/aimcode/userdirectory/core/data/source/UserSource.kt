@@ -3,6 +3,7 @@ package com.aimcode.userdirectory.core.data.source
 import com.aimcode.userdirectory.core.data.repository.UserRepository
 import com.aimcode.userdirectory.core.data.source.remote.UserService
 import com.aimcode.userdirectory.core.model.Resource
+import com.aimcode.userdirectory.core.model.request.UserRequest
 import com.aimcode.userdirectory.core.model.response.CityResponse
 import com.aimcode.userdirectory.core.model.response.UserResponse
 import retrofit2.HttpException
@@ -31,6 +32,23 @@ class UserSource @Inject constructor(
         return try {
             val result = userService.getCities()
             Timber.d(result.toString())
+
+            Resource.Success(result)
+        } catch (e: HttpException) {
+            Timber.e(e)
+            Resource.Failed()
+        } catch (e: Exception) {
+            Timber.e(e)
+            Resource.Failed()
+        }
+    }
+
+    override suspend fun addUser(request: UserRequest): Resource<UserResponse> {
+        return try {
+
+            val result = userService.addUser(
+                request = request
+            )
 
             Resource.Success(result)
         } catch (e: HttpException) {

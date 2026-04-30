@@ -1,8 +1,11 @@
 package com.aimcode.userdirectory.core.data.source.remote
 
+import com.aimcode.userdirectory.core.model.request.UserRequest
 import com.aimcode.userdirectory.core.model.response.CityResponse
 import com.aimcode.userdirectory.core.model.response.UserResponse
+import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.POST
 import retrofit2.http.Query
 
 interface UserService {
@@ -13,4 +16,9 @@ interface UserService {
 
     @GET("/city")
     suspend fun getCities(): List<CityResponse>
+
+    @POST("/user")
+    suspend fun addUser(
+        @Body request: UserRequest
+    ): UserResponse
 }

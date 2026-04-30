@@ -49,6 +49,9 @@ class HomeViewModel @Inject constructor(
             }
         }
 
+    var isRefreshing by mutableStateOf(false)
+        private set
+
     init {
         getUsers()
         getCities()
@@ -74,6 +77,31 @@ class HomeViewModel @Inject constructor(
                 is Resource.Success -> UiLoadState.Success(result.data)
                 is Resource.Failed -> UiLoadState.Failed(result.code)
             }
+        }
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            isRefreshing = true
+            val cityName = selectedCity?.name
+            val usersJob = launch {
+                when (val result = userRepository.getUsers(cityName)) {
+                    is Resource.Success -> {
+                        rawUsers = result.data.orEmpty()
+                        _userState = UiLoadState.Success(result.data)
+                    }
+                    is Resource.Failed -> _userState = UiLoadState.Failed(result.code)
+                }
+            }
+            val citiesJob = launch {
+                when (val result = userRepository.getCities()) {
+                    is Resource.Success -> _cityState = UiLoadState.Success(result.data)
+                    is Resource.Failed -> _cityState = UiLoadState.Failed(result.code)
+                }
+            }
+            usersJob.join()
+            citiesJob.join()
+            isRefreshing = false
         }
     }
 
