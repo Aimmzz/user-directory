@@ -59,6 +59,9 @@ android {
 
 kotlin {
     jvmToolchain(17)
+    compilerOptions {
+        freeCompilerArgs.add("-Xannotation-default-target=param-property")
+    }
 }
 
 dependencies {
@@ -81,7 +84,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.jakewharton.timber)
     implementation(libs.retrofit)
-    implementation(libs.retrofit.converter)
+    implementation(libs.retrofit.converter.moshi)
     implementation(libs.okhttp.logging)
     implementation(libs.moshi.kotlin)
     ksp(libs.moshi.kotlin.codegen)
