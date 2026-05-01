@@ -2,6 +2,7 @@ package com.aimcode.userdirectory.core.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.work.WorkManager
 import com.aimcode.userdirectory.core.data.source.local.AppDatabase
 import dagger.Module
 import dagger.Provides
@@ -25,4 +26,12 @@ object DatabaseModule {
 
     @Provides
     fun provideCityDao(database: AppDatabase) = database.cityDao()
+
+    @Provides
+    fun providePendingUserDao(database: AppDatabase) = database.pendingUserDao()
+
+    @Provides
+    @Singleton
+    fun provideWorkManager(@ApplicationContext context: Context): WorkManager =
+        WorkManager.getInstance(context)
 }

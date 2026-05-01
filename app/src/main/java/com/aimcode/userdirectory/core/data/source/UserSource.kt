@@ -1,11 +1,18 @@
 package com.aimcode.userdirectory.core.data.source
 
+import androidx.work.Constraints
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.aimcode.userdirectory.core.data.mapper.toEntity
 import com.aimcode.userdirectory.core.data.mapper.toResponse
 import com.aimcode.userdirectory.core.data.repository.UserRepository
 import com.aimcode.userdirectory.core.data.source.local.dao.CityDao
+import com.aimcode.userdirectory.core.data.source.local.dao.PendingUserDao
 import com.aimcode.userdirectory.core.data.source.local.dao.UserDao
 import com.aimcode.userdirectory.core.data.source.remote.UserService
+import com.aimcode.userdirectory.core.data.worker.SyncUserWorker
 import com.aimcode.userdirectory.core.model.Resource
 import com.aimcode.userdirectory.core.model.request.UserRequest
 import com.aimcode.userdirectory.core.model.response.CityResponse
@@ -18,6 +25,8 @@ class UserSource @Inject constructor(
     private val userService: UserService,
     private val userDao: UserDao,
     private val cityDao: CityDao,
+    private val pendingUserDao: PendingUserDao,
+    private val workManager: WorkManager,
 ): UserRepository {
     override suspend fun getUsers(city: String?): Resource<List<UserResponse>> {
         return try {
@@ -70,18 +79,32 @@ class UserSource @Inject constructor(
 
     override suspend fun addUser(request: UserRequest): Resource<UserResponse> {
         return try {
-
-            val result = userService.addUser(
-                request = request
-            )
-
+            val result = userService.addUser(request)
             Resource.Success(result)
         } catch (e: HttpException) {
             Timber.e(e)
             Resource.Failed()
         } catch (e: Exception) {
             Timber.e(e)
-            Resource.Failed()
+            pendingUserDao.insert(request.toEntity())
+            enqueueSyncWorker()
+            Resource.Queued()
         }
+    }
+
+    private fun enqueueSyncWorker() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val request = OneTimeWorkRequestBuilder<SyncUserWorker>()
+            .setConstraints(constraints)
+            .build()
+
+        workManager.enqueueUniqueWork(
+            SyncUserWorker.WORK_NAME,
+            ExistingWorkPolicy.REPLACE,
+            request
+        )
     }
 }

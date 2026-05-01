@@ -5,4 +5,6 @@ sealed class UiLoadState<T> {
     class Loading<T> : UiLoadState<T>()
     class Failed<T>(val code: Int? = null) : UiLoadState<T>()
     data class Success<T>(val data: T?) : UiLoadState<T>()
+
+    class Queued<T> : UiLoadState<T>()
 }

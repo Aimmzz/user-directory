@@ -101,6 +101,8 @@ fun FilterCityBottomSheet(
                         }
                     }
                 }
+
+                is UiLoadState.Queued -> {}
             }
         }
     }

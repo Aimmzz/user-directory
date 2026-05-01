@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -179,6 +180,8 @@ private fun HomeScreenUi(
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                             .padding(horizontal = 16.dp, vertical = 4.dp)
                     )
+
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
 
                 OutlinedTextField(
@@ -222,11 +225,13 @@ private fun HomeScreenUi(
 
                 is UiLoadState.Failed -> ErrorUi(onRetry = onRetry)
 
-                is UiLoadState.Success -> SuccessUi(
-                    modifier = modifier,
-                    users = filteredUsers,
-                    sortAscending = sortAscending
-                )
+                is UiLoadState.Success, is UiLoadState.Queued -> {
+                    SuccessUi(
+                        modifier = modifier,
+                        users = filteredUsers,
+                        sortAscending = sortAscending
+                    )
+                }
             }
         }
     }

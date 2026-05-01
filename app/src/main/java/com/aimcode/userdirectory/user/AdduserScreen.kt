@@ -52,21 +52,19 @@ fun AddUserScreen(
 
     LaunchedEffect(addUserState) {
         when (addUserState) {
-            is UiLoadState.Loading -> {
-                coroutineScope.launch { sheetState.show() }
+            is UiLoadState.Loading -> coroutineScope.launch { sheetState.show() }
+            is UiLoadState.Success -> coroutineScope.launch {
+                sheetState.hide()
+                onUserAdded()
             }
-            is UiLoadState.Success -> {
-                coroutineScope.launch {
-                    sheetState.hide()
-                    onUserAdded()
-                }
+
+            is UiLoadState.Queued -> coroutineScope.launch {
+                sheetState.hide()
+                onUserAdded()
             }
-            is UiLoadState.Failed -> {
-                coroutineScope.launch { sheetState.hide() }
-            }
-            else -> {
-                coroutineScope.launch { sheetState.hide() }
-            }
+
+            is UiLoadState.Failed -> coroutineScope.launch { sheetState.hide() }
+            else -> coroutineScope.launch { sheetState.hide() }
         }
     }
 
@@ -127,6 +125,22 @@ private fun AddUserScreenUi(
             confirmButton = {
                 TextButton(onClick = onResetState) {
                     Text("Tutup")
+                }
+            }
+        )
+    }
+
+    if (addUserState is UiLoadState.Queued) {
+        AlertDialog(
+            onDismissRequest = onResetState,
+            title = { Text("Tersimpan Sementara") },
+            text = { Text("Kamu sedang offline. Data akan dikirim otomatis saat koneksi tersedia.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    onResetState()
+                    onNavigateBack()
+                }) {
+                    Text("Oke")
                 }
             }
         )

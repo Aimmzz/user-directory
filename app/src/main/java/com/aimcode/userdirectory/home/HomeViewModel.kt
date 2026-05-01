@@ -70,6 +70,7 @@ class HomeViewModel @Inject constructor(
                     UiLoadState.Success(result.data)
                 }
                 is Resource.Failed -> UiLoadState.Failed(result.code)
+                is Resource.Queued -> UiLoadState.Success(rawUsers)
             }
         }
     }
@@ -83,6 +84,7 @@ class HomeViewModel @Inject constructor(
                     UiLoadState.Success(result.data)
                 }
                 is Resource.Failed -> UiLoadState.Failed(result.code)
+                is Resource.Queued -> UiLoadState.Idle()
             }
         }
     }
@@ -99,12 +101,18 @@ class HomeViewModel @Inject constructor(
                         _userState = UiLoadState.Success(result.data)
                     }
                     is Resource.Failed -> _userState = UiLoadState.Failed(result.code)
+                    is Resource.Queued -> {
+                        isOfflineCache = true
+                        _userState = UiLoadState.Success(rawUsers)
+                    }
                 }
             }
             val citiesJob = launch {
                 _cityState = when (val result = userRepository.getCities()) {
                     is Resource.Success -> UiLoadState.Success(result.data)
                     is Resource.Failed -> UiLoadState.Failed(result.code)
+                    is Resource.Queued -> _cityState
+
                 }
             }
             usersJob.join()

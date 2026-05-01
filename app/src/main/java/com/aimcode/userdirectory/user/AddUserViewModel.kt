@@ -70,12 +70,13 @@ class AddUserViewModel @Inject constructor(
                         email = email,
                         phoneNumber = phoneNumber,
                         city = city,
-                        gender = gender
+                        gender = gender,
                     )
                 )
             ) {
                 is Resource.Success -> UiLoadState.Success(result.data)
                 is Resource.Failed -> UiLoadState.Failed(result.code)
+                is Resource.Queued -> UiLoadState.Queued()
             }
         }
     }
