@@ -52,6 +52,9 @@ class HomeViewModel @Inject constructor(
     var isRefreshing by mutableStateOf(false)
         private set
 
+    var isOfflineCache by mutableStateOf(false)
+        private set
+
     init {
         getUsers()
         getCities()
@@ -63,6 +66,7 @@ class HomeViewModel @Inject constructor(
             _userState = when (val result = userRepository.getUsers(cityName)) {
                 is Resource.Success -> {
                     rawUsers = result.data.orEmpty()
+                    isOfflineCache = result.fromCache
                     UiLoadState.Success(result.data)
                 }
                 is Resource.Failed -> UiLoadState.Failed(result.code)
@@ -74,7 +78,10 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _cityState = UiLoadState.Loading()
             _cityState = when (val result = userRepository.getCities()) {
-                is Resource.Success -> UiLoadState.Success(result.data)
+                is Resource.Success -> {
+                    if (result.fromCache) isOfflineCache = true
+                    UiLoadState.Success(result.data)
+                }
                 is Resource.Failed -> UiLoadState.Failed(result.code)
             }
         }
@@ -88,15 +95,16 @@ class HomeViewModel @Inject constructor(
                 when (val result = userRepository.getUsers(cityName)) {
                     is Resource.Success -> {
                         rawUsers = result.data.orEmpty()
+                        isOfflineCache = result.fromCache
                         _userState = UiLoadState.Success(result.data)
                     }
                     is Resource.Failed -> _userState = UiLoadState.Failed(result.code)
                 }
             }
             val citiesJob = launch {
-                when (val result = userRepository.getCities()) {
-                    is Resource.Success -> _cityState = UiLoadState.Success(result.data)
-                    is Resource.Failed -> _cityState = UiLoadState.Failed(result.code)
+                _cityState = when (val result = userRepository.getCities()) {
+                    is Resource.Success -> UiLoadState.Success(result.data)
+                    is Resource.Failed -> UiLoadState.Failed(result.code)
                 }
             }
             usersJob.join()

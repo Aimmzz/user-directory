@@ -1,5 +1,6 @@
 package com.aimcode.userdirectory.home
 
+import androidx.compose.foundation.background
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -80,6 +81,7 @@ fun HomeScreen(
         searchQuery = viewModel.searchQuery,
         sortAscending = viewModel.sortAscending,
         isRefreshing = viewModel.isRefreshing,
+        isOfflineCache = viewModel.isOfflineCache,
         onRefresh = viewModel::refresh,
         onSearchQueryChange = viewModel::onSearchQueryChange,
         onToggleSort = viewModel::toggleSort,
@@ -101,6 +103,7 @@ private fun HomeScreenUi(
     searchQuery: String,
     sortAscending: Boolean,
     isRefreshing: Boolean,
+    isOfflineCache: Boolean,
     onRefresh: () -> Unit,
     onSearchQueryChange: (String) -> Unit,
     onToggleSort: () -> Unit,
@@ -165,6 +168,18 @@ private fun HomeScreenUi(
                         }
                     }
                 )
+
+                if (isOfflineCache) {
+                    Text(
+                        text = "Mode Offline: Menampilkan data tersimpan",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                }
 
                 OutlinedTextField(
                     value = searchQuery,

@@ -28,6 +28,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -36,7 +37,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.aimcode.userdirectory.core.model.response.UserResponse
 import com.aimcode.userdirectory.core.ui.UiLoadState
 import com.aimcode.userdirectory.core.ui.component.LoadingBottomSheet
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddUserScreen(
     onNavigateBack: () -> Unit,
@@ -44,10 +47,26 @@ fun AddUserScreen(
     viewModel: AddUserViewModel = hiltViewModel()
 ) {
     val addUserState = viewModel.addUserState
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(addUserState) {
-        if (addUserState is UiLoadState.Success) {
-            onUserAdded()
+        when (addUserState) {
+            is UiLoadState.Loading -> {
+                coroutineScope.launch { sheetState.show() }
+            }
+            is UiLoadState.Success -> {
+                coroutineScope.launch {
+                    sheetState.hide()
+                    onUserAdded()
+                }
+            }
+            is UiLoadState.Failed -> {
+                coroutineScope.launch { sheetState.hide() }
+            }
+            else -> {
+                coroutineScope.launch { sheetState.hide() }
+            }
         }
     }
 
@@ -69,6 +88,11 @@ fun AddUserScreen(
         onSubmit = viewModel::addUser,
         onResetState = viewModel::resetState,
         onNavigateBack = onNavigateBack
+    )
+
+    LoadingBottomSheet(
+        sheetState = sheetState,
+        onDismissRequest = {}
     )
 }
 
@@ -94,14 +118,6 @@ private fun AddUserScreenUi(
     onResetState: () -> Unit,
     onNavigateBack: () -> Unit,
 ) {
-    val loadingSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    if (addUserState is UiLoadState.Loading) {
-        LoadingBottomSheet(
-            sheetState = loadingSheetState,
-            onDismissRequest = {}
-        )
-    }
 
     if (addUserState is UiLoadState.Failed) {
         AlertDialog(
